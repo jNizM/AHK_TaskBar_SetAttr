@@ -1,5 +1,6 @@
-﻿; ===============================================================================================================================
-; Make the windows 10 taskbar translucent (blur)
+; ===============================================================================================================================
+; Make the Windows 10 taskbar translucent (blur)
+; https://github.com/jNizM/AHK_TaskBar_SetAttr/tree/master
 ; https://autohotkey.com/boards/viewtopic.php?f=6&t=26752
 ; ===============================================================================================================================
 
@@ -18,41 +19,41 @@ TaskBar_SetAttr(accent_state := 0, gradient_color := "0x01000000")
     static init, hTrayWnd, ver := DllCall("GetVersion") & 0xff < 10
     static pad := A_PtrSize = 8 ? 4 : 0, WCA_ACCENT_POLICY := 19
 
-    if !(init) {
+    if !IsSet(init) {
         if (ver)
-            throw Exception("Minimum support client: Windows 10", -1)
+            throw ValueError("Minimum support client: Windows 10", -1)
         if !(hTrayWnd := DllCall("user32\FindWindow", "str", "Shell_TrayWnd", "ptr", 0, "ptr"))
-            throw Exception("Failed to get the handle", -1)
+            throw ValueError("Failed to get the handle", -1)
         init := 1
     }
 
-    accent_size := VarSetCapacity(ACCENT_POLICY, 16, 0)
-    NumPut((accent_state > 0 && accent_state < 4) ? accent_state : 0, ACCENT_POLICY, 0, "int")
+    ACCENT_POLICY := Buffer(16, 0)
+    NumPut("int", (accent_state > 0 && accent_state < 4) ? accent_state : 0, ACCENT_POLICY, 0)
 
     if (accent_state >= 1) && (accent_state <= 2) && (RegExMatch(gradient_color, "0x[[:xdigit:]]{8}"))
-        NumPut(gradient_color, ACCENT_POLICY, 8, "int")
+        NumPut("int", gradient_color, ACCENT_POLICY, 8)
 
-    VarSetCapacity(WINCOMPATTRDATA, 4 + pad + A_PtrSize + 4 + pad, 0)
-    && NumPut(WCA_ACCENT_POLICY, WINCOMPATTRDATA, 0, "int")
-    && NumPut(&ACCENT_POLICY, WINCOMPATTRDATA, 4 + pad, "ptr")
-    && NumPut(accent_size, WINCOMPATTRDATA, 4 + pad + A_PtrSize, "uint")
-    if !(DllCall("user32\SetWindowCompositionAttribute", "ptr", hTrayWnd, "ptr", &WINCOMPATTRDATA))
-        throw Exception("Failed to set transparency / blur", -1)
+    WINCOMPATTRDATA := Buffer(4 + pad + A_PtrSize + 4 + pad, 0)
+    NumPut("int", WCA_ACCENT_POLICY, WINCOMPATTRDATA, 0)
+    NumPut("ptr", ACCENT_POLICY.ptr, WINCOMPATTRDATA, 4 + pad)
+    NumPut("uint", ACCENT_POLICY.Size, WINCOMPATTRDATA, 4 + pad + A_PtrSize)
+    if !(DllCall("user32\SetWindowCompositionAttribute", "ptr", hTrayWnd, "ptr", WINCOMPATTRDATA.ptr))
+        throw ValueError("Failed to set transparency / blur", -1)
     return true
 }
 
 ; ===============================================================================================================================
 
-TaskBar_SetAttr(1, 0xc1e3c791)    ; <- Set gradient    with color 0xd7a78f ( rgb = 0x91c7e3 ) and alpha 0xc1
-sleep 3000
-TaskBar_SetAttr(2, 0xa1e3c791)    ; <- Set transparent with color 0xd7a78f ( rgb = 0x91c7e3 ) and alpha 0xa1
-sleep 3000
-TaskBar_SetAttr(2)                ; <- Set transparent
-sleep 3000
-TaskBar_SetAttr(3)                ; <- Set blur
-sleep 3000
-TaskBar_SetAttr(0)                ; <- Set standard value
-ExitApp
+;TaskBar_SetAttr(1, 0xc1e3c791)    ; <- Set gradient    with color 0xd7a78f ( rgb = 0x91c7e3 ) and alpha 0xc1
+;sleep 3000
+;TaskBar_SetAttr(2, 0xa1e3c791)    ; <- Set transparent with color 0xd7a78f ( rgb = 0x91c7e3 ) and alpha 0xa1
+;sleep 3000
+;TaskBar_SetAttr(2)                ; <- Set transparent
+;sleep 3000
+;TaskBar_SetAttr(3)                ; <- Set blur
+;sleep 3000
+;TaskBar_SetAttr(0)                ; <- Set standard value
+;ExitApp
 
 /*
 Since clicking on Win-Start will reset the taskbar, it will be the best solution to use a SetTimer with x ms to set the Attribute
